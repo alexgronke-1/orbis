@@ -56,10 +56,12 @@
            color:var(--ink);box-shadow:0 7px 18px rgba(0,0,0,.28);
            cursor:grab;user-select:none;touch-action:none;white-space:nowrap;
            animation:cardDrop .5s cubic-bezier(.2,.85,.25,1.1) both}
-  .placard::before{content:"";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);
-                   border:10px solid transparent;border-top-color:#9c8f6e}
-  .placard::after{content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
-                  border:9px solid transparent;border-top-color:var(--paper)}
+  .placard::before{content:"";position:absolute;left:50%;bottom:-16px;transform:translateX(-50%);
+                   border-left:8px solid transparent;border-right:8px solid transparent;
+                   border-top:16px solid #9c8f6e}
+  .placard::after{content:"";position:absolute;left:50%;bottom:-13px;transform:translateX(-50%);
+                  border-left:6px solid transparent;border-right:6px solid transparent;
+                  border-top:13px solid var(--paper)}
   .placard.grabbing{cursor:grabbing;animation:none;
                     transform:translate(-50%,0) scale(1.04);
                     box-shadow:0 14px 30px rgba(0,0,0,.36)}
@@ -216,7 +218,7 @@
   // ::before/::after triangle, tip ~TAIL px below the card box) is the guess
   // point. Drop = submit; grab-without-moving is a no-op so you can regrab.
   const stage = el("stage");
-  const TAIL = 11;
+  const TAIL = 16;   // px from card box bottom to the pointer tip (see .placard::before)
   let card=null, dragging=false, moved=false, grabDX=0, grabDY=0,
       curLeft=0, curTop=0, downX=0, downY=0;
 
