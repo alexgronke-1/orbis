@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Orbis Romanus — place the province</title>
+<style>
+  /* Starter palette. Visual identity is intentionally a later stage —
+     see CLAUDE.md. Deliberately NOT the parchment/serif/terracotta default. */
+  :root{
+    --sea:#12233b; --land:#d8cdb0; --land-line:#9c8f6e;
+    --river:#4f7a8a; --ink:#1b2534; --paper:#ece3cf;
+    --accent:#b06a3a; --good:#3f7d4f; --ok:#c1912e; --fair:#c8722f; --miss:#a8402c;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       color:var(--ink);background:#e7ddc6}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px}
+  h1{font-size:22px;letter-spacing:.02em;margin:.2em 0}
+  .muted{color:#5a5340;font-size:14px}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+  button{font:inherit;padding:7px 12px;border:1px solid #b3a684;border-radius:8px;
+         background:var(--paper);color:var(--ink);cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  button:disabled{opacity:.5;cursor:default}
+  #stage{position:relative;border-radius:10px;overflow:hidden;
+         box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  svg{display:block;width:100%;height:auto;cursor:crosshair;background:var(--sea)}
+  .hud{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
+       flex-wrap:wrap;margin:12px 0 6px}
+  .prompt{font-size:26px;font-weight:600;letter-spacing:.04em}
+  .tier-tag{font-size:12px;text-transform:uppercase;letter-spacing:.12em;
+            color:#fff;background:#7a6a4a;border-radius:99px;padding:2px 9px;vertical-align:middle}
+  .score{font-variant-numeric:tabular-nums}
+  .verdict{min-height:1.6em;font-size:15px}
+  .swatch{display:inline-block;width:.8em;height:.8em;border-radius:50%;vertical-align:-1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Orbis Romanus</h1>
+  <p class="muted">A Latin name appears — click the map where it belonged in the Roman world. Your error is measured in Roman miles.</p>
+
+  <div class="row" id="tiers"></div>
+  <div class="row">
+    <button id="start">Begin</button>
+    <button id="reveal" disabled>Reveal &amp; skip</button>
+    <span class="muted" id="loadnote"></span>
+  </div>
+
+  <div class="hud" id="hud" hidden>
+    <div><span class="prompt" id="prompt">—</span> <span class="tier-tag" id="tiertag"></span></div>
+    <div class="score">Round <span id="idx">0</span>/<span id="total">0</span> · Score <span id="score">0</span></div>
+  </div>
+  <div class="verdict" id="verdict"></div>
+
+  <div id="stage"><svg id="map" preserveAspectRatio="xMidYMid meet"></svg></div>
+</div>
+
+<script src="data/mapdata.js"></script>
+<script src="data/places.js"></script>
+<script>
+(function(){
+  const MAP = window.ORBIS_MAP, PLACES = window.ORBIS_PLACES;
+  const SVGNS = "http://www.w3.org/2000/svg";
+  const svg = document.getElementById("map");
+  const el = id => document.getElementById(id);
+
+  if(!MAP || !PLACES){ el("loadnote").textContent = "Could not load map/place data."; return; }
+
+  const { width:W, height:H, lonMin, lonMax, latMin, latMax } = MAP.meta;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  // ---- projection helpers (equirectangular, exactly invertible) ----------
+  const toXY  = (lon,lat) => [ (lon-lonMin)/(lonMax-lonMin)*W, (latMax-lat)/(latMax-latMin)*H ];
+  const toLL  = (x,y)     => [ lonMin + x/W*(lonMax-lonMin), latMax - y/H*(latMax-latMin) ];
+
+  function haversineKm(lon1,lat1,lon2,lat2){
+    const R=6371, r=Math.PI/180;
+    const dLat=(lat2-lat1)*r, dLon=(lon2-lon1)*r;
+    const a=Math.sin(dLat/2)**2 + Math.cos(lat1*r)*Math.cos(lat2*r)*Math.sin(dLon/2)**2;
+    return 2*R*Math.asin(Math.sqrt(a));
+  }
+  const kmToRomanMiles = km => Math.round(km/1.48);
+
+  // ---- draw the base map -------------------------------------------------
+  function ring(pts){ return pts.map((p,i)=>(i?"L":"M")+p[0]+" "+p[1]).join(" ")+"Z"; }
+  function line(pts){ return pts.map((p,i)=>(i?"L":"M")+p[0]+" "+p[1]).join(" "); }
+
+  const gLand   = document.createElementNS(SVGNS,"g");
+  const gRivers = document.createElementNS(SVGNS,"g");
+  const gPlay   = document.createElementNS(SVGNS,"g");   // guesses/markers live here
+
+  const landPath = document.createElementNS(SVGNS,"path");
+  landPath.setAttribute("d", MAP.land.map(ring).join(" "));
+  landPath.setAttribute("fill", "var(--land)");
+  landPath.setAttribute("stroke", "var(--land-line)");
+  landPath.setAttribute("stroke-width", "0.8");
+  landPath.setAttribute("fill-rule", "evenodd");
+  gLand.appendChild(landPath);
+
+  MAP.rivers.forEach(r=>{
+    const p=document.createElementNS(SVGNS,"path");
+    p.setAttribute("d", line(r));
+    p.setAttribute("fill","none");
+    p.setAttribute("stroke","var(--river)");
+    p.setAttribute("stroke-width","1");
+    p.setAttribute("stroke-linecap","round");
+    gRivers.appendChild(p);
+  });
+
+  svg.append(gLand, gRivers, gPlay);
+
+  // ---- game state --------------------------------------------------------
+  let deck=[], i=0, score=0, awaiting=false, activeTier="all";
+
+  const TIERS = [
+    ["all","All"],["familiar","Familiar"],["known","Known"],
+    ["obscure","Obscure"],["edge","The edge"],
+  ];
+  const TIER_POINTS = { familiar:1, known:2, obscure:3, edge:4 };
+
+  // scoring: bands scale a bit by tier (edge is judged gently)
+  function judge(km, tier){
+    const slack = tier==="edge" ? 1.8 : tier==="obscure" ? 1.3 : 1;
+    if(km < 90*slack)  return {label:"Struck true",  cls:"good", pts:1.0};
+    if(km < 260*slack) return {label:"Close",        cls:"ok",   pts:0.6};
+    if(km < 550*slack) return {label:"In the region",cls:"fair", pts:0.3};
+    return {label:"Lost to Rome", cls:"miss", pts:0};
+  }
+
+  function tierButtons(){
+    const box=el("tiers");
+    TIERS.forEach(([id,label])=>{
+      const b=document.createElement("button");
+      b.textContent=label; b.dataset.tier=id;
+      if(id===activeTier) b.classList.add("active");
+      b.onclick=()=>{ activeTier=id; [...box.children].forEach(c=>c.classList.toggle("active",c.dataset.tier===id)); };
+      box.appendChild(b);
+    });
+  }
+
+  function shuffle(a){ for(let k=a.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;[a[k],a[j]]=[a[j],a[k]];} return a; }
+
+  function startRound(){
+    deck = shuffle(PLACES.filter(p=>activeTier==="all"||p.tier===activeTier).slice());
+    i=0; score=0; awaiting=false;
+    gPlay.replaceChildren();
+    el("hud").hidden=false;
+    el("total").textContent=deck.length;
+    el("start").textContent="Restart";
+    next();
+  }
+
+  function next(){
+    el("verdict").innerHTML="";
+    if(i>=deck.length){ finish(); return; }
+    const p=deck[i];
+    el("prompt").textContent=p.name;
+    el("tiertag").textContent=p.tier;
+    el("idx").textContent=i+1;
+    el("score").textContent=Math.round(score);
+    el("reveal").disabled=false;
+    awaiting=true;
+  }
+
+  function dot(x,y,color,r){
+    const c=document.createElementNS(SVGNS,"circle");
+    c.setAttribute("cx",x);c.setAttribute("cy",y);c.setAttribute("r",r||4);
+    c.setAttribute("fill",color);c.setAttribute("stroke","#fff");c.setAttribute("stroke-width","1");
+    gPlay.appendChild(c); return c;
+  }
+  function label(x,y,text){
+    const t=document.createElementNS(SVGNS,"text");
+    t.setAttribute("x",x+7);t.setAttribute("y",y-7);
+    t.setAttribute("font-size","13");t.setAttribute("font-family","system-ui,sans-serif");
+    t.setAttribute("fill","#fff");t.setAttribute("stroke","#000");t.setAttribute("stroke-width","0.5");
+    t.setAttribute("paint-order","stroke");t.textContent=text;
+    gPlay.appendChild(t);
+  }
+
+  function resolve(guessLon, guessLat){
+    if(!awaiting) return;
+    awaiting=false; el("reveal").disabled=true;
+    const p=deck[i];
+    const [tx,ty]=toXY(p.lon,p.lat);
+    const km = guessLon===null ? Infinity : haversineKm(guessLon,guessLat,p.lon,p.lat);
+    const v = km===Infinity ? {label:"Skipped",cls:"miss",pts:0} : judge(km,p.tier);
+    score += v.pts * (TIER_POINTS[p.tier]||1);
+
+    if(guessLon!==null){
+      const [gx,gy]=toXY(guessLon,guessLat);
+      const ln=document.createElementNS(SVGNS,"line");
+      ln.setAttribute("x1",gx);ln.setAttribute("y1",gy);ln.setAttribute("x2",tx);ln.setAttribute("y2",ty);
+      ln.setAttribute("stroke","#fff");ln.setAttribute("stroke-width","1");ln.setAttribute("stroke-dasharray","3 3");
+      gPlay.appendChild(ln);
+      dot(gx,gy,"#3a3a3a",4);
+    }
+    dot(tx,ty,"var(--accent)",5);
+    label(tx,ty,p.name);
+
+    const dist = km===Infinity ? "—" : kmToRomanMiles(km).toLocaleString()+" Roman miles";
+    const note = p.note ? ` — <em>${p.note}</em>` : "";
+    el("verdict").innerHTML =
+      `<span class="swatch" style="background:var(--${v.cls})"></span> <strong>${v.label}.</strong> ` +
+      `${p.name} is <strong>${p.modern}</strong>${note}. Off by ${dist}. ` +
+      `<button id="nx">Next →</button>`;
+    el("nx").onclick=()=>{ i++; next(); };
+    el("score").textContent=Math.round(score);
+  }
+
+  function finish(){
+    el("hud").hidden=true;
+    el("reveal").disabled=true;
+    el("prompt").textContent="—";
+    el("verdict").innerHTML =
+      `<strong>Round complete.</strong> Final score <strong>${Math.round(score)}</strong> ` +
+      `across ${deck.length} places. Press <em>Restart</em> to march again.`;
+  }
+
+  // ---- input: click the map to place ------------------------------------
+  svg.addEventListener("click", ev=>{
+    if(!awaiting) return;
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+    const loc=pt.matrixTransform(svg.getScreenCTM().inverse()); // -> viewBox coords = map px/py
+    const [lon,lat]=toLL(loc.x, loc.y);
+    resolve(lon,lat);
+  });
+
+  el("reveal").onclick=()=>resolve(null,null);
+  el("start").onclick=startRound;
+
+  tierButtons();
+  el("loadnote").textContent = `${PLACES.length} places · map ${W}×${H}`;
+})();
+</script>
+</body>
+</html>
