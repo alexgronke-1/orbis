@@ -45,9 +45,30 @@
   .reach.active .r-blurb,.reach.active .r-count{opacity:.95}
   #begin{font-size:16px;padding:9px 18px}
 
-  #stage{position:relative;border-radius:10px;overflow:hidden;
-         box-shadow:0 6px 24px rgba(0,0,0,.25)}
-  svg{display:block;width:100%;height:auto;cursor:crosshair;background:var(--sea)}
+  #stage{position:relative}
+  #mapclip{border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25)}
+  svg{display:block;width:100%;height:auto;background:var(--sea)}
+
+  /* ---- draggable name placard ---- */
+  .placard{position:absolute;left:50%;top:14px;transform:translate(-50%,0);z-index:6;
+           background:var(--paper);border:1px solid #9c8f6e;border-radius:8px;
+           padding:7px 15px;font-size:19px;font-weight:600;letter-spacing:.05em;
+           color:var(--ink);box-shadow:0 7px 18px rgba(0,0,0,.28);
+           cursor:grab;user-select:none;touch-action:none;white-space:nowrap;
+           animation:cardDrop .5s cubic-bezier(.2,.85,.25,1.1) both}
+  .placard::before{content:"";position:absolute;left:50%;bottom:-11px;transform:translateX(-50%);
+                   border:10px solid transparent;border-top-color:#9c8f6e}
+  .placard::after{content:"";position:absolute;left:50%;bottom:-9px;transform:translateX(-50%);
+                  border:9px solid transparent;border-top-color:var(--paper)}
+  .placard.grabbing{cursor:grabbing;animation:none;
+                    transform:translate(-50%,0) scale(1.04);
+                    box-shadow:0 14px 30px rgba(0,0,0,.36)}
+  .placard.placed{opacity:.4;pointer-events:none;box-shadow:none}
+  @keyframes cardDrop{
+    from{transform:translate(-50%,-190%);opacity:0}
+    55%{opacity:1}
+    to{transform:translate(-50%,0);opacity:1}
+  }
   .hud{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
        flex-wrap:wrap;margin:12px 0 6px}
   .prompt{font-size:26px;font-weight:600;letter-spacing:.04em}
@@ -61,7 +82,7 @@
 <body>
 <div class="wrap">
   <h1>Orbis Romanus</h1>
-  <p class="muted">A Latin name appears — click the map where it belonged in the Roman world. Your error is measured in Roman miles.</p>
+  <p class="muted">A Latin name drops onto the map — drag the placard so its pointer rests where the place belonged in the Roman world. Your error is measured in Roman miles.</p>
 
   <div class="startscreen" id="startscreen">
     <div id="summary"></div>
@@ -83,7 +104,7 @@
     <button id="quit">End round</button>
   </div>
 
-  <div id="stage" hidden><svg id="map" preserveAspectRatio="xMidYMid meet"></svg></div>
+  <div id="stage" hidden><div id="mapclip"><svg id="map" preserveAspectRatio="xMidYMid meet"></svg></div></div>
 </div>
 
 <script src="data/mapdata.js"></script>
@@ -190,10 +211,84 @@
 
   function shuffle(a){ for(let k=a.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;[a[k],a[j]]=[a[j],a[k]];} return a; }
 
+  // ---- the draggable name placard -------------------------------------------
+  // The card is plain HTML floating over #stage. Its downward pointer (the CSS
+  // ::before/::after triangle, tip ~TAIL px below the card box) is the guess
+  // point. Drop = submit; grab-without-moving is a no-op so you can regrab.
+  const stage = el("stage");
+  const TAIL = 11;
+  let card=null, dragging=false, moved=false, grabDX=0, grabDY=0,
+      curLeft=0, curTop=0, downX=0, downY=0;
+
+  function removeCard(){ if(card){ card.remove(); card=null; } dragging=false; }
+
+  function spawnCard(name){
+    removeCard();
+    card = document.createElement("div");
+    card.className = "placard";
+    card.textContent = name;
+    stage.appendChild(card);
+    const sr = stage.getBoundingClientRect();
+    curLeft = sr.width/2; curTop = 14;          // matches the CSS resting spot
+    card.addEventListener("pointerdown", onDown);
+    card.addEventListener("pointermove", onMove);
+    card.addEventListener("pointerup", onUp);
+    card.addEventListener("pointercancel", onCancel);
+  }
+
+  function onDown(e){
+    if(!awaiting) return;
+    e.preventDefault();
+    dragging = true; moved = false;
+    downX = e.clientX; downY = e.clientY;
+    card.style.animation = "none";
+    card.style.left = curLeft+"px"; card.style.top = curTop+"px";
+    card.classList.add("grabbing");
+    try{ card.setPointerCapture(e.pointerId); }catch(_){}
+    const sr = stage.getBoundingClientRect();
+    grabDX = (e.clientX - sr.left) - curLeft;
+    grabDY = (e.clientY - sr.top)  - curTop;
+  }
+
+  function onMove(e){
+    if(!dragging) return;
+    const sr = stage.getBoundingClientRect();
+    const ch = card.offsetHeight;
+    let L = (e.clientX - sr.left) - grabDX;
+    let T = (e.clientY - sr.top)  - grabDY;
+    L = Math.max(0, Math.min(sr.width, L));                 // tip x within map
+    T = Math.max(-(ch+TAIL), Math.min(sr.height-ch-TAIL, T)); // tip y within map
+    curLeft = L; curTop = T;
+    card.style.left = L+"px"; card.style.top = T+"px";
+    if(Math.hypot(e.clientX-downX, e.clientY-downY) > 6) moved = true;
+  }
+
+  function onUp(e){
+    if(!dragging) return;
+    dragging = false;
+    try{ card.releasePointerCapture(e.pointerId); }catch(_){}
+    card.classList.remove("grabbing");
+    if(!moved) return;                 // grabbed but not moved — try again
+    const r = card.getBoundingClientRect();
+    const pt = svg.createSVGPoint();
+    pt.x = r.left + r.width/2;         // tip: horizontal centre of the card
+    pt.y = r.bottom + TAIL;            // tip: just below the card box
+    const loc = pt.matrixTransform(svg.getScreenCTM().inverse());
+    const [lon,lat] = toLL(loc.x, loc.y);
+    resolve(lon, lat);
+  }
+
+  function onCancel(){
+    if(!dragging) return;
+    dragging = false;
+    card.classList.remove("grabbing");
+  }
+
   function startRound(){
     deck = shuffle(placesFor(reachOf()).slice());
     i=0; score=0; awaiting=false;
     gPlay.replaceChildren();
+    removeCard();
     el("summary").innerHTML="";
     el("verdict").innerHTML="";
     el("startscreen").hidden=true;
@@ -214,6 +309,7 @@
     el("score").textContent=Math.round(score);
     el("reveal").disabled=false;
     awaiting=true;
+    spawnCard(p.name);
   }
 
   function dot(x,y,color,r){
@@ -234,6 +330,7 @@
   function resolve(guessLon, guessLat){
     if(!awaiting) return;
     awaiting=false; el("reveal").disabled=true;
+    if(card) card.classList.add("placed");
     const p=deck[i];
     const [tx,ty]=toXY(p.lon,p.lat);
     const km = guessLon===null ? Infinity : haversineKm(guessLon,guessLat,p.lon,p.lat);
@@ -270,21 +367,13 @@
     el("reveal").disabled=true;
     el("prompt").textContent="—";
     el("verdict").innerHTML="";
+    removeCard();
     el("summary").innerHTML =
       `<strong>Round complete.</strong> Final score <strong>${Math.round(score)}</strong> ` +
       `across ${done} ${done===1?"place":"places"} of <em>${reach.name}</em>.`;
     el("begin").textContent="March again";
     el("startscreen").hidden=false;
   }
-
-  // ---- input: click the map to place ------------------------------------
-  svg.addEventListener("click", ev=>{
-    if(!awaiting) return;
-    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
-    const loc=pt.matrixTransform(svg.getScreenCTM().inverse()); // -> viewBox coords = map px/py
-    const [lon,lat]=toLL(loc.x, loc.y);
-    resolve(lon,lat);
-  });
 
   el("reveal").onclick=()=>resolve(null,null);
   el("quit").onclick=()=>{ awaiting=false; finish(); };
