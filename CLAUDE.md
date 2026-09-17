@@ -71,15 +71,17 @@ either widen the bbox and rebuild, or leave it out.
 - **later:** a "beyond the world" tier (India, Taprobane, Serica) — needs the
   bbox pushed east past 70°E and generous tolerance. A city-level round.
 
-## Open design decision (don't skip)
+## Visual identity
 
-The v1 look is a functional placeholder, **not** the final identity — and it
-deliberately avoids the parchment + engraved-serif + terracotta cliché the
-first two attempts reached for (it's the default "old map" AI look). Before
-polishing visuals, do a real design pass per
-`/mnt/skills/public/frontend-design/SKILL.md`: pick a palette and type system
-that's a choice for *this* subject, and spend the boldness in one signature
-element.
+Resolved: **mosaic tesserae**. The palette (`:root` in `index.html`) is drawn
+from a Roman floor mosaic — near-black ink (`--ink`/`--sea`), limestone
+tessera (`--paper`/`--land`), cinnabar red (`--accent`), and ochre
+(`--accent2`). The signature element is the red-and-black checkerboard band
+(`.tess`) under the masthead — kept to that one spot deliberately; everything
+else is flat tile color, not pattern. Round markers on the map are small
+diamonds (rotated squares) rather than circles, echoing the same tile
+language at small scale. If this gets revisited, avoid drifting back toward
+parchment/terracotta — that's the cliché this was chosen to replace.
 
 ## Running
 
