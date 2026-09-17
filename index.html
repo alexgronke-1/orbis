@@ -45,6 +45,13 @@
   .reach.active .r-blurb,.reach.active .r-count{opacity:.95}
   #begin{font-size:16px;padding:9px 18px}
 
+  .reach.trial{border-width:2px}
+  .divider{display:flex;align-items:center;gap:10px;margin:16px 0 10px;
+           font-size:12px;text-transform:uppercase;letter-spacing:.1em;opacity:.55}
+  .divider::before,.divider::after{content:"";flex:1;height:1px;background:#b3a684}
+  .sobriquet{display:inline-block;margin-top:8px;font-size:20px;font-weight:700;
+             letter-spacing:.03em;color:var(--accent)}
+
   #stage{position:relative}
   #mapclip{border-radius:10px;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.25)}
   svg{display:block;width:100%;height:auto;background:var(--sea)}
@@ -88,6 +95,16 @@
 
   <div class="startscreen" id="startscreen">
     <div id="summary"></div>
+    <h2>The Trial</h2>
+    <p class="muted">Ten places — cities, provinces, and regions, easy to hard, no tells. Score out of 10, earn your sobriquet.</p>
+    <div class="reach-list" id="trialpick">
+      <button class="reach trial" id="trialcard">
+        <span class="r-name">The Trial</span>
+        <span class="r-count">10 questions</span>
+        <span class="r-blurb">A fixed test drawn from the whole map. One shot — see what sobriquet you earn.</span>
+      </button>
+    </div>
+    <div class="divider">or practice by reach</div>
     <h2>Choose your reach</h2>
     <p class="muted">How far past Rome are you willing to be tested?</p>
     <div class="reach-list" id="reaches"></div>
@@ -164,7 +181,7 @@
   svg.append(gLand, gRivers, gPlay);
 
   // ---- game state --------------------------------------------------------
-  let deck=[], i=0, score=0, awaiting=false, activeReach="provinces";
+  let deck=[], i=0, score=0, awaiting=false, activeReach="provinces", mode="practice";
 
   // Reach = a cumulative slice of the tiers, chosen on the start screen.
   const REACHES = [
@@ -183,6 +200,36 @@
   const reachOf = () => REACHES.find(r=>r.id===activeReach) || REACHES[0];
   const placesFor = reach => PLACES.filter(p=>reach.tiers.includes(p.tier));
 
+  // ---- The Trial: a fixed 10-question test, mixed tier and kind ----------
+  // Guarantees a familiar and an edge-tier place (so the range runs easy to
+  // hard) and at least one city/province/region (so the mix is real), then
+  // fills the rest at random and shuffles — nothing about the order or the
+  // UI hints at which questions are the easy ones.
+  const SOBRIQUETS = [
+    { min:9, name:"Caesar" },
+    { min:7, name:"Consul" },
+    { min:5, name:"Legatus" },
+    { min:3, name:"Centurion" },
+    { min:0, name:"Plebs" },
+  ];
+  const sobriquetFor = score => (SOBRIQUETS.find(s=>score>=s.min) || SOBRIQUETS.at(-1)).name;
+
+  function buildTrialDeck(){
+    const picked = [];
+    const pick = filterFn => {
+      const candidates = shuffle(PLACES.filter(p=>!picked.includes(p) && filterFn(p)));
+      if(candidates.length){ picked.push(candidates[0]); return true; }
+      return false;
+    };
+    pick(p=>p.tier==="familiar");
+    pick(p=>p.tier==="edge");
+    ["city","region","province"].forEach(k=>{
+      if(!picked.some(p=>p.kind===k)) pick(p=>p.kind===k);
+    });
+    while(picked.length<10 && pick(()=>true));
+    return shuffle(picked);
+  }
+
   // scoring: bands scale a bit by tier (edge is judged gently)
   function judge(km, tier){
     const slack = tier==="edge" ? 1.8 : tier==="obscure" ? 1.3 : 1;
@@ -197,19 +244,28 @@
     box.replaceChildren();
     REACHES.forEach(r=>{
       const b=document.createElement("button");
-      b.className="reach"+(r.id===activeReach?" active":"");
+      b.className="reach"+(r.id===activeReach && mode==="practice"?" active":"");
       b.dataset.reach=r.id;
       b.innerHTML =
         `<span class="r-name">${r.name}</span>` +
         `<span class="r-count">${placesFor(r).length} places</span>` +
         `<span class="r-blurb">${r.blurb}</span>`;
       b.onclick=()=>{
-        activeReach=r.id;
+        mode="practice"; activeReach=r.id;
         [...box.children].forEach(c=>c.classList.toggle("active",c.dataset.reach===r.id));
+        el("trialcard").classList.remove("active");
+        el("begin").textContent="Begin";
       };
       box.appendChild(b);
     });
   }
+
+  el("trialcard").onclick=()=>{
+    mode="trial";
+    el("trialcard").classList.add("active");
+    [...el("reaches").children].forEach(c=>c.classList.remove("active"));
+    el("begin").textContent="Begin the Trial";
+  };
 
   function shuffle(a){ for(let k=a.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;[a[k],a[j]]=[a[j],a[k]];} return a; }
 
@@ -287,7 +343,7 @@
   }
 
   function startRound(){
-    deck = shuffle(placesFor(reachOf()).slice());
+    deck = mode==="trial" ? buildTrialDeck() : shuffle(placesFor(reachOf()).slice());
     i=0; score=0; awaiting=false;
     gPlay.replaceChildren();
     removeCard();
@@ -301,14 +357,19 @@
     next();
   }
 
+  function renderScore(){
+    el("score").textContent = mode==="trial" ? `${Math.round(score*10)/10}/10` : Math.round(score);
+  }
+
   function next(){
     el("verdict").innerHTML="";
     if(i>=deck.length){ finish(); return; }
     const p=deck[i];
     el("prompt").textContent=p.name;
-    el("tiertag").textContent=p.tier;
+    el("tiertag").hidden = mode==="trial";
+    if(mode!=="trial") el("tiertag").textContent=p.tier;
     el("idx").textContent=i+1;
-    el("score").textContent=Math.round(score);
+    renderScore();
     el("reveal").disabled=false;
     awaiting=true;
     spawnCard(p.name);
@@ -337,7 +398,7 @@
     const [tx,ty]=toXY(p.lon,p.lat);
     const km = guessLon===null ? Infinity : haversineKm(guessLon,guessLat,p.lon,p.lat);
     const v = km===Infinity ? {label:"Skipped",cls:"miss",pts:0} : judge(km,p.tier);
-    score += v.pts * (TIER_POINTS[p.tier]||1);
+    score += mode==="trial" ? v.pts : v.pts * (TIER_POINTS[p.tier]||1);
 
     if(guessLon!==null){
       const [gx,gy]=toXY(guessLon,guessLat);
@@ -357,11 +418,10 @@
       `${p.name} is <strong>${p.modern}</strong>${note}. Off by ${dist}. ` +
       `<button id="nx">Next →</button>`;
     el("nx").onclick=()=>{ i++; next(); };
-    el("score").textContent=Math.round(score);
+    renderScore();
   }
 
   function finish(){
-    const reach = reachOf();
     const done = i;                       // how many were actually played
     el("hud").hidden=true;
     el("gamebar").hidden=true;
@@ -370,10 +430,19 @@
     el("prompt").textContent="—";
     el("verdict").innerHTML="";
     removeCard();
-    el("summary").innerHTML =
-      `<strong>Round complete.</strong> Final score <strong>${Math.round(score)}</strong> ` +
-      `across ${done} ${done===1?"place":"places"} of <em>${reach.name}</em>.`;
-    el("begin").textContent="March again";
+    if(mode==="trial"){
+      const s = Math.round(score*10)/10;
+      el("summary").innerHTML =
+        `<strong>The Trial is complete.</strong> You scored <strong>${s}</strong> out of 10.<br>` +
+        `<span class="sobriquet">${sobriquetFor(score)}</span>`;
+      el("begin").textContent="Take the Trial again";
+    } else {
+      const reach = reachOf();
+      el("summary").innerHTML =
+        `<strong>Round complete.</strong> Final score <strong>${Math.round(score)}</strong> ` +
+        `across ${done} ${done===1?"place":"places"} of <em>${reach.name}</em>.`;
+      el("begin").textContent="March again";
+    }
     el("startscreen").hidden=false;
   }
 

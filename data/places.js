@@ -4,20 +4,25 @@
  * Each entry:
  *   name    Latin name shown to the player
  *   tier    "familiar" | "known" | "obscure" | "edge"  (difficulty + points)
- *   kind    "city" for a city; omitted for a province / region / land
+ *   kind    "city" | "province" | "region"
+ *             province = a formally organized Roman provincia
+ *             region   = a geographic/ethnic name Rome used but never (or only
+ *                        briefly) organized as a single province — a broad
+ *                        area spanning several provinces (Gallia, Hispania),
+ *                        a client kingdom (Osroene, Colchis), or land outside
+ *                        Roman control entirely (Hibernia, Parthia, Thule)
  *   lon,lat true location (decimal degrees) — used for scoring
  *   modern  what/where it is today, revealed after a guess (for learning)
  *   note    optional gotcha / disambiguation, shown on reveal
  *
  * This is a SEED, deliberately extensible. Adding a place is one line — no
- * code changes. Region coordinates are approximate province centroids; city
+ * code changes. Region coordinates are approximate centroids; city
  * coordinates are the real point. For the legendary "edge" lands (Thule,
  * Serica...) the ancients' own placement was vague, so the engine gives
  * edge-tier guesses a more forgiving tolerance.
  *
- * Cities are mixed straight into the normal rounds — they carry a tier like
- * anything else. The `kind:"city"` tag is only there for a future city-only
- * round / a distinct marker; the engine ignores it today.
+ * `kind` is used by The Trial (a fixed 10-question test) to draw a mix of
+ * cities, provinces, and regions rather than picking blind.
  *
  * Ideas to extend (left for later stages):
  *   - a fifth "beyond the world" tier: India, Taprobane (Sri Lanka),
@@ -25,59 +30,59 @@
  */
 window.ORBIS_PLACES = [
   // ---- FAMILIAR ----------------------------------------------------------
-  { name: "Italia",     tier: "familiar", lon: 12.5, lat: 42.5, modern: "Italy" },
-  { name: "Graecia",    tier: "familiar", lon: 22.0, lat: 39.2, modern: "Greece" },
-  { name: "Aegyptus",   tier: "familiar", lon: 30.8, lat: 27.0, modern: "Egypt (Nile valley)" },
-  { name: "Iudaea",     tier: "familiar", lon: 35.2, lat: 31.6, modern: "Israel / Palestine" },
-  { name: "Gallia",     tier: "familiar", lon:  2.6, lat: 47.0, modern: "France" },
-  { name: "Hispania",   tier: "familiar", lon: -4.0, lat: 40.0, modern: "Spain & Portugal" },
-  { name: "Britannia",  tier: "familiar", lon: -1.6, lat: 52.2, modern: "England & Wales" },
-  { name: "Sicilia",    tier: "familiar", lon: 14.1, lat: 37.5, modern: "Sicily" },
-  { name: "Syria",      tier: "familiar", lon: 37.0, lat: 35.2, modern: "Syria" },
-  { name: "Creta",      tier: "familiar", lon: 24.9, lat: 35.2, modern: "Crete" },
+  { name: "Italia",     tier: "familiar", kind: "region",   lon: 12.5, lat: 42.5, modern: "Italy", note: "The homeland itself — not a provincia until Diocletian." },
+  { name: "Graecia",    tier: "familiar", kind: "region",   lon: 22.0, lat: 39.2, modern: "Greece", note: "The Roman province here was Achaea; 'Graecia' is the geographic name." },
+  { name: "Aegyptus",   tier: "familiar", kind: "province", lon: 30.8, lat: 27.0, modern: "Egypt (Nile valley)" },
+  { name: "Iudaea",     tier: "familiar", kind: "province", lon: 35.2, lat: 31.6, modern: "Israel / Palestine" },
+  { name: "Gallia",     tier: "familiar", kind: "region",   lon:  2.6, lat: 47.0, modern: "France", note: "Spans several provinces — Lugdunensis, Belgica, Aquitania, Narbonensis." },
+  { name: "Hispania",   tier: "familiar", kind: "region",   lon: -4.0, lat: 40.0, modern: "Spain & Portugal", note: "Spans several provinces — Tarraconensis, Baetica, Lusitania." },
+  { name: "Britannia",  tier: "familiar", kind: "province", lon: -1.6, lat: 52.2, modern: "England & Wales" },
+  { name: "Sicilia",    tier: "familiar", kind: "province", lon: 14.1, lat: 37.5, modern: "Sicily", note: "Rome's first province, 241 BC." },
+  { name: "Syria",      tier: "familiar", kind: "province", lon: 37.0, lat: 35.2, modern: "Syria" },
+  { name: "Creta",      tier: "familiar", kind: "province", lon: 24.9, lat: 35.2, modern: "Crete", note: "Joined with Cyrenaica as one province." },
 
   // ---- KNOWN -------------------------------------------------------------
-  { name: "Pannonia",   tier: "known", lon: 18.5, lat: 46.2, modern: "W Hungary / E Austria" },
-  { name: "Dacia",      tier: "known", lon: 24.2, lat: 46.2, modern: "Romania" },
-  { name: "Cappadocia", tier: "known", lon: 35.5, lat: 38.7, modern: "Central Turkey" },
-  { name: "Numidia",    tier: "known", lon:  6.5, lat: 35.6, modern: "NE Algeria" },
-  { name: "Lusitania",  tier: "known", lon: -8.0, lat: 39.6, modern: "Portugal" },
-  { name: "Thracia",    tier: "known", lon: 26.0, lat: 42.0, modern: "SE Bulgaria / Türkiye" },
-  { name: "Galatia",    tier: "known", lon: 33.0, lat: 39.5, modern: "Central Anatolia" },
-  { name: "Cyrenaica",  tier: "known", lon: 22.0, lat: 32.2, modern: "E Libya" },
-  { name: "Mesopotamia",tier: "known", lon: 40.5, lat: 35.0, modern: "N Iraq / SE Türkiye" },
-  { name: "Baetica",    tier: "known", lon: -5.0, lat: 37.5, modern: "Andalusia, Spain" },
-  { name: "Cilicia",    tier: "known", lon: 34.0, lat: 37.0, modern: "S coast of Türkiye" },
-  { name: "Arabia",     tier: "known", lon: 36.0, lat: 30.3, modern: "Jordan (Nabataea)", note: "Provincia Arabia Petraea — not the whole peninsula." },
+  { name: "Pannonia",   tier: "known", kind: "province", lon: 18.5, lat: 46.2, modern: "W Hungary / E Austria" },
+  { name: "Dacia",      tier: "known", kind: "province", lon: 24.2, lat: 46.2, modern: "Romania" },
+  { name: "Cappadocia", tier: "known", kind: "province", lon: 35.5, lat: 38.7, modern: "Central Turkey" },
+  { name: "Numidia",    tier: "known", kind: "province", lon:  6.5, lat: 35.6, modern: "NE Algeria" },
+  { name: "Lusitania",  tier: "known", kind: "province", lon: -8.0, lat: 39.6, modern: "Portugal" },
+  { name: "Thracia",    tier: "known", kind: "province", lon: 26.0, lat: 42.0, modern: "SE Bulgaria / Türkiye" },
+  { name: "Galatia",    tier: "known", kind: "province", lon: 33.0, lat: 39.5, modern: "Central Anatolia" },
+  { name: "Cyrenaica",  tier: "known", kind: "province", lon: 22.0, lat: 32.2, modern: "E Libya" },
+  { name: "Mesopotamia",tier: "known", kind: "province", lon: 40.5, lat: 35.0, modern: "N Iraq / SE Türkiye", note: "Held only briefly, under Trajan and Septimius Severus." },
+  { name: "Baetica",    tier: "known", kind: "province", lon: -5.0, lat: 37.5, modern: "Andalusia, Spain" },
+  { name: "Cilicia",    tier: "known", kind: "province", lon: 34.0, lat: 37.0, modern: "S coast of Türkiye" },
+  { name: "Arabia",     tier: "known", kind: "province", lon: 36.0, lat: 30.3, modern: "Jordan (Nabataea)", note: "Provincia Arabia Petraea — not the whole peninsula." },
 
   // ---- OBSCURE -----------------------------------------------------------
-  { name: "Noricum",    tier: "obscure", lon: 14.0, lat: 47.2, modern: "Austria / Slovenia" },
-  { name: "Raetia",     tier: "obscure", lon: 10.5, lat: 47.2, modern: "Switzerland / Tyrol" },
-  { name: "Moesia",     tier: "obscure", lon: 23.0, lat: 43.6, modern: "Serbia / N Bulgaria" },
-  { name: "Dalmatia",   tier: "obscure", lon: 17.2, lat: 43.8, modern: "Croatian coast" },
-  { name: "Commagene",  tier: "obscure", lon: 38.0, lat: 37.5, modern: "SE Türkiye" },
-  { name: "Colchis",    tier: "obscure", lon: 42.0, lat: 42.3, modern: "W Georgia" },
-  { name: "Taurica",    tier: "obscure", lon: 34.2, lat: 45.2, modern: "Crimea" },
-  { name: "Pontus",     tier: "obscure", lon: 37.0, lat: 41.0, modern: "N Türkiye, Black Sea coast" },
-  { name: "Lycia",      tier: "obscure", lon: 29.6, lat: 36.4, modern: "SW Türkiye" },
-  { name: "Osroene",    tier: "obscure", lon: 39.0, lat: 37.1, modern: "Şanlıurfa region, Türkiye" },
-  { name: "Assyria",    tier: "obscure", lon: 43.0, lat: 36.2, modern: "N Iraq" },
-  { name: "Iberia",     tier: "obscure", lon: 44.5, lat: 41.9, modern: "E Georgia (Caucasus)", note: "The Caucasian Iberia — NOT Hispania." },
-  { name: "Asia",       tier: "obscure", lon: 28.0, lat: 38.5, modern: "W Anatolia (province)", note: "The Roman province, not the continent." },
+  { name: "Noricum",    tier: "obscure", kind: "province", lon: 14.0, lat: 47.2, modern: "Austria / Slovenia" },
+  { name: "Raetia",     tier: "obscure", kind: "province", lon: 10.5, lat: 47.2, modern: "Switzerland / Tyrol" },
+  { name: "Moesia",     tier: "obscure", kind: "province", lon: 23.0, lat: 43.6, modern: "Serbia / N Bulgaria" },
+  { name: "Dalmatia",   tier: "obscure", kind: "province", lon: 17.2, lat: 43.8, modern: "Croatian coast" },
+  { name: "Commagene",  tier: "obscure", kind: "region",   lon: 38.0, lat: 37.5, modern: "SE Türkiye", note: "A client kingdom, absorbed into Syria rather than run as its own province." },
+  { name: "Colchis",    tier: "obscure", kind: "region",   lon: 42.0, lat: 42.3, modern: "W Georgia", note: "Client kingdom (Lazica) — never a formal Roman province." },
+  { name: "Taurica",    tier: "obscure", kind: "region",   lon: 34.2, lat: 45.2, modern: "Crimea", note: "The Bosporan Kingdom — a client state, not annexed." },
+  { name: "Pontus",     tier: "obscure", kind: "province", lon: 37.0, lat: 41.0, modern: "N Türkiye, Black Sea coast", note: "Joined with Bithynia as one province." },
+  { name: "Lycia",      tier: "obscure", kind: "province", lon: 29.6, lat: 36.4, modern: "SW Türkiye", note: "Joined with Pamphylia as one province." },
+  { name: "Osroene",    tier: "obscure", kind: "region",   lon: 39.0, lat: 37.1, modern: "Şanlıurfa region, Türkiye", note: "A client kingdom (Edessa) for most of its history." },
+  { name: "Assyria",    tier: "obscure", kind: "region",   lon: 43.0, lat: 36.2, modern: "N Iraq", note: "Declared a province under Trajan but abandoned almost at once." },
+  { name: "Iberia",     tier: "obscure", kind: "region",   lon: 44.5, lat: 41.9, modern: "E Georgia (Caucasus)", note: "The Caucasian Iberia — NOT Hispania. A client kingdom, never annexed." },
+  { name: "Asia",       tier: "obscure", kind: "province", lon: 28.0, lat: 38.5, modern: "W Anatolia (province)", note: "The Roman province, not the continent." },
 
   // ---- THE EDGE ----------------------------------------------------------
-  { name: "Hibernia",   tier: "edge", lon: -8.0, lat: 53.3, modern: "Ireland" },
-  { name: "Caledonia",  tier: "edge", lon: -4.5, lat: 57.0, modern: "Scotland" },
-  { name: "Thule",      tier: "edge", lon: -6.0, lat: 59.3, modern: "Legendary far north (Iceland? Norway? Shetland?)", note: "Placement was vague even to Rome — generous tolerance." },
-  { name: "Garamantia", tier: "edge", lon: 13.0, lat: 26.5, modern: "Fezzan, S Libya (Sahara)" },
-  { name: "Aethiopia",  tier: "edge", lon: 31.5, lat: 18.5, modern: "Nubia / Sudan" },
-  { name: "Sarmatia",   tier: "edge", lon: 40.0, lat: 49.5, modern: "Pontic–Caspian steppe" },
-  { name: "Albania",    tier: "edge", lon: 47.5, lat: 40.7, modern: "Azerbaijan (Caucasian Albania)", note: "Nothing to do with modern Albania." },
-  { name: "Hyrcania",   tier: "edge", lon: 54.0, lat: 37.0, modern: "SE Caspian shore, Iran" },
-  { name: "Parthia",    tier: "edge", lon: 52.0, lat: 33.5, modern: "Iran (Parthian heartland)" },
-  { name: "Gedrosia",   tier: "edge", lon: 63.0, lat: 27.0, modern: "Baluchistan (Pakistan/Iran)" },
-  { name: "Bactria",    tier: "edge", lon: 66.5, lat: 37.0, modern: "N Afghanistan" },
-  { name: "Sogdiana",   tier: "edge", lon: 66.5, lat: 39.6, modern: "Uzbekistan (Samarkand)" },
+  { name: "Hibernia",   tier: "edge", kind: "region", lon: -8.0, lat: 53.3, modern: "Ireland", note: "Never invaded by Rome." },
+  { name: "Caledonia",  tier: "edge", kind: "region", lon: -4.5, lat: 57.0, modern: "Scotland", note: "Raided and walled off, never conquered." },
+  { name: "Thule",      tier: "edge", kind: "region", lon: -6.0, lat: 59.3, modern: "Legendary far north (Iceland? Norway? Shetland?)", note: "Placement was vague even to Rome — generous tolerance." },
+  { name: "Garamantia", tier: "edge", kind: "region", lon: 13.0, lat: 26.5, modern: "Fezzan, S Libya (Sahara)", note: "A Saharan kingdom Rome raided but never held." },
+  { name: "Aethiopia",  tier: "edge", kind: "region", lon: 31.5, lat: 18.5, modern: "Nubia / Sudan", note: "Beyond the southern frontier at Aegyptus." },
+  { name: "Sarmatia",   tier: "edge", kind: "region", lon: 40.0, lat: 49.5, modern: "Pontic–Caspian steppe", note: "Nomadic peoples, never Roman territory." },
+  { name: "Albania",    tier: "edge", kind: "region", lon: 47.5, lat: 40.7, modern: "Azerbaijan (Caucasian Albania)", note: "Nothing to do with modern Albania. A client kingdom, not annexed." },
+  { name: "Hyrcania",   tier: "edge", kind: "region", lon: 54.0, lat: 37.0, modern: "SE Caspian shore, Iran", note: "Beyond Roman control — within the Parthian, then Sasanian, orbit." },
+  { name: "Parthia",    tier: "edge", kind: "region", lon: 52.0, lat: 33.5, modern: "Iran (Parthian heartland)", note: "Rome's great rival empire, never conquered." },
+  { name: "Gedrosia",   tier: "edge", kind: "region", lon: 63.0, lat: 27.0, modern: "Baluchistan (Pakistan/Iran)", note: "Known to Rome mainly from Alexander's disastrous march through it." },
+  { name: "Bactria",    tier: "edge", kind: "region", lon: 66.5, lat: 37.0, modern: "N Afghanistan", note: "Far beyond the frontier, on the Silk Road." },
+  { name: "Sogdiana",   tier: "edge", kind: "region", lon: 66.5, lat: 39.6, modern: "Uzbekistan (Samarkand)", note: "The edge of the known world for Rome." },
 
   // ======================================================================
   //  CITIES  — mixed into the normal rounds; tier = difficulty as usual.
