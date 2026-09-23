@@ -108,6 +108,12 @@ wanted was a heavier wash, not partial layer opacity.) The masthead and HUD
 text sit directly on this background, not on a `--paper` card, so recheck
 contrast there specifically if the wash is ever lightened again.
 
+`assets/janus.png` — a Midjourney replica of an ancient coin profile of
+Janus, two-faced god of doorways and travel (thematically apt: the game is
+about finding your way around the Roman world) — sits beside the `h1` in
+`.masthead`, cropped circular with a double ink/ochre ring echoing the
+coin's own beaded rim.
+
 Display type is **Unbounded** (Google Fonts, loaded via `<link>` — the one
 network dependency the game has; everything falls back to `system-ui` if it
 can't load) on `h1`, `.prompt`, `.sobriquet`, and `.placard`. It replaced

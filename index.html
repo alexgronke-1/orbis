@@ -28,8 +28,12 @@
               background:linear-gradient(rgba(14,11,8,.86),rgba(14,11,8,.86)),
                          url("assets/mosaic-medallion.webp") center/cover no-repeat}
   .wrap{max-width:1100px;margin:0 auto;padding:16px}
-  h1{font:800 22px/1.2 var(--display);letter-spacing:0;margin:.3em 0}
+  h1{font:800 22px/1.2 var(--display);letter-spacing:0;margin:0}
   .muted{color:rgba(236,229,211,.62);font-size:14px}
+
+  .masthead{display:flex;align-items:center;gap:12px;margin:.5em 0}
+  .janus{width:48px;height:48px;border-radius:50%;object-fit:cover;flex:none;
+         box-shadow:0 0 0 2px var(--ink),0 0 0 4px var(--accent2),0 4px 10px rgba(0,0,0,.5)}
 
   /* the signature element: a mosaic border band, red-and-black tesserae */
   .tess{height:14px;margin:14px 0 20px;border-radius:3px;
@@ -92,7 +96,10 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Orbis Romanus</h1>
+  <div class="masthead">
+    <img class="janus" src="assets/janus.png" alt="" width="48" height="48">
+    <h1>Orbis Romanus</h1>
+  </div>
   <p class="muted">How well can you navigate the world of Ancient Rome? Drag each Latin name onto the map where you think it belongs — are you Caesar of the map, a mere Plebs, or somewhere in between?</p>
   <div class="tess"></div>
 
