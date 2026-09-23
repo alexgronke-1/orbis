@@ -96,6 +96,14 @@ diamonds (rotated squares) rather than circles, echoing the same tile
 language at small scale. If this gets revisited, avoid drifting back toward
 parchment/terracotta — that's the cliché this was chosen to replace.
 
+`assets/tesserae-bg.webp` is a Midjourney-generated replica of a real
+Roman guilloche/key-pattern floor mosaic, used as an ambient page texture via
+`body::before` — fixed, `opacity:.06`, desaturated and darkened further with
+`filter`. Deliberately near-invisible: it reads as depth on the dark chrome,
+not a second pattern competing with `.tess`. If it ever needs to be more
+visible, raise opacity in small steps and recheck against the `.tess` band
+and text contrast rather than assuming more is better.
+
 ## Running
 
 No build step, no dependencies for the game itself. Open `index.html` directly,
