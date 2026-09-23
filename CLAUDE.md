@@ -100,14 +100,13 @@ parchment/terracotta — that's the cliché this was chosen to replace.
 Roman figural floor mosaic (an octagonal medallion scene bordered with
 animal panels), used as a full-page background via `body::before` — fixed,
 single image, `background:center/cover no-repeat`, not tiled. A
-`linear-gradient(rgba(14,11,8,.5),rgba(14,11,8,.5))` wash is composited
-under the image (same layer) to keep it from overpowering foreground text,
-plus `opacity:.85` on the whole layer. This is a deliberately more present
-treatment than a first attempt at a tiled, near-invisible texture (still in
-git history if that restraint is wanted back) — the tradeoff if it's
-adjusted again is wash/opacity vs. text legibility on the un-carded areas
-(the masthead and HUD sit directly on this background, not on a `--paper`
-card), so recheck contrast there specifically after any change.
+`linear-gradient(rgba(14,11,8,.86),rgba(14,11,8,.86))` wash is composited
+under the image (same layer) so it reads as a dim, moody scene rather than
+overpowering foreground text or competing with `.tess`. (An earlier, lighter
+wash at `.5` made it too busy and hurt legibility — turned out the fix
+wanted was a heavier wash, not partial layer opacity.) The masthead and HUD
+text sit directly on this background, not on a `--paper` card, so recheck
+contrast there specifically if the wash is ever lightened again.
 
 Display type is **Unbounded** (Google Fonts, loaded via `<link>` — the one
 network dependency the game has; everything falls back to `system-ui` if it
