@@ -57,17 +57,30 @@ Add `note:"…"` for gotchas (e.g. Caucasian Iberia vs. Hispania). Coordinates
 are approximate province centroids. Anything outside the map bbox won't show —
 either widen the bbox and rebuild, or leave it out.
 
+## Game format
+
+Resolved: **one fixed test, not a mode picker.** v1/early v2 let the player
+pick a "reach" (Provinces → Frontier → Whole Known World) before playing —
+a cumulative tier filter that produced open-ended rounds of varying length.
+That was replaced with a single format: every playthrough is a fixed
+ten-question test, `buildDeck()` in `index.html`, drawn from the full place
+list and guaranteed a spread of difficulty (`tier`) and kind (`kind`), with
+the tier never shown during play. Score is equal-weighted per question
+(distance-band credit, no tier multiplier), always out of 10, ending in a
+sobriquet from `SOBRIQUETS` (Caesar down to Plebs). Don't reintroduce a
+mode-selection screen — if difficulty options come back, they should shape
+which fixed test gets built, not fork the game into separate modes again.
+
 ## Roadmap
 
-- **v1 (done):** real coastline + rivers, 47 places across 4 tiers, click-to-
-  place, haversine scoring with tier-weighted forgiveness, reveal/skip, round
-  summary.
-- **v2 (next):** drag-and-drop the name card (v1 uses click-to-place — simpler
-  and less bug-prone; drag is the intended feel). Full ~95-place dataset. A
-  start screen to pick reach (Provinces → Frontier → Whole Known World).
-- **v3 (polish):** study mode that labels everything first; a zoom for the
-  packed Levant/Anatolia cluster; streak/timer; end-screen stats; deploy to
-  Vercel.
+- **v1 (done):** real coastline + rivers, click-to-place, haversine scoring,
+  reveal/skip, round summary.
+- **v2 (done):** drag-and-drop the name card. 85-place dataset (cities,
+  provinces, regions). The reach-picker start screen was tried, then
+  replaced — see "Game format" above.
+- **v3 (polish, next):** study mode that labels everything first; a zoom for
+  the packed Levant/Anatolia cluster; streak/timer; end-screen stats beyond
+  the sobriquet.
 - **later:** a "beyond the world" tier (India, Taprobane, Serica) — needs the
   bbox pushed east past 70°E and generous tolerance. A city-level round.
 

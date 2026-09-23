@@ -40,29 +40,11 @@
   .startscreen{background:var(--paper);color:var(--ink);border-radius:8px;
                padding:22px;max-width:560px;margin:18px 0;
                box-shadow:0 10px 30px rgba(0,0,0,.45)}
-  .startscreen h2{margin:.1em 0 .3em;font-size:16px;font-weight:800;
-                  text-transform:uppercase;letter-spacing:.08em}
   .startscreen .muted{color:rgba(24,19,13,.6)}
   #summary:not(:empty){margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--line)}
-  .reach-list{display:flex;flex-direction:column;gap:8px;margin:14px 0 16px}
-  .reach{display:grid;grid-template-columns:1fr auto;gap:3px 10px;width:100%;
-         text-align:left;padding:11px 13px;border-radius:6px;
-         border:1.5px solid var(--line);background:#fff}
-  .reach:hover{border-color:var(--accent)}
-  .reach.active{border-color:var(--accent);background:var(--accent);color:#fff}
-  .reach .r-name{font-weight:700;letter-spacing:.02em}
-  .reach .r-count{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;
-                  font-size:13px;opacity:.7}
-  .reach .r-blurb{grid-column:1/-1;font-size:13px;opacity:.8}
-  .reach.active .r-blurb,.reach.active .r-count{opacity:.95}
-  #begin{font-size:16px;padding:10px 20px;background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  #begin{font-size:16px;padding:10px 20px;margin-top:16px;
+         background:var(--ink);color:var(--paper);border-color:var(--ink)}
   #begin:hover{background:var(--accent);border-color:var(--accent);color:#fff}
-
-  .reach.trial{border-color:var(--accent2);border-width:2px}
-  .reach.trial.active{background:var(--accent2);border-color:var(--accent2);color:var(--ink)}
-  .divider{display:flex;align-items:center;gap:10px;margin:16px 0 10px;
-           font-size:12px;text-transform:uppercase;letter-spacing:.12em;opacity:.5}
-  .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--line)}
   .sobriquet{display:inline-block;margin-top:6px;font-size:26px;font-weight:800;
              text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
 
@@ -96,8 +78,6 @@
   .hud{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
        flex-wrap:wrap;margin:12px 0 6px}
   .prompt{font-size:28px;font-weight:800;letter-spacing:.03em;color:var(--paper)}
-  .tier-tag{font-size:12px;text-transform:uppercase;letter-spacing:.12em;
-            color:var(--ink);background:var(--accent2);border-radius:3px;padding:2px 9px;vertical-align:middle}
   .score{font-variant-numeric:tabular-nums;color:rgba(236,229,211,.75)}
   .verdict{min-height:1.6em;font-size:15px}
   .swatch{display:inline-block;width:.8em;height:.8em;border-radius:2px;vertical-align:-1px}
@@ -111,25 +91,13 @@
 
   <div class="startscreen" id="startscreen">
     <div id="summary"></div>
-    <h2>The Trial</h2>
     <p class="muted">Ten places — cities, provinces, and regions, easy to hard, no tells. Score out of 10, earn your sobriquet.</p>
-    <div class="reach-list" id="trialpick">
-      <button class="reach trial" id="trialcard">
-        <span class="r-name">The Trial</span>
-        <span class="r-count">10 questions</span>
-        <span class="r-blurb">A fixed test drawn from the whole map. One shot — see what sobriquet you earn.</span>
-      </button>
-    </div>
-    <div class="divider">or practice by reach</div>
-    <h2>Choose your reach</h2>
-    <p class="muted">How far past Rome are you willing to be tested?</p>
-    <div class="reach-list" id="reaches"></div>
     <button id="begin">Begin</button>
     <div class="muted" id="loadnote" style="margin-top:10px"></div>
   </div>
 
   <div class="hud" id="hud" hidden>
-    <div><span class="prompt" id="prompt">—</span> <span class="tier-tag" id="tiertag"></span></div>
+    <div><span class="prompt" id="prompt">—</span></div>
     <div class="score">Round <span id="idx">0</span>/<span id="total">0</span> · Score <span id="score">0</span></div>
   </div>
   <div class="verdict" id="verdict"></div>
@@ -197,30 +165,13 @@
   svg.append(gLand, gRivers, gPlay);
 
   // ---- game state --------------------------------------------------------
-  let deck=[], i=0, score=0, awaiting=false, activeReach="provinces", mode="practice";
+  let deck=[], i=0, score=0, awaiting=false;
 
-  // Reach = a cumulative slice of the tiers, chosen on the start screen.
-  const REACHES = [
-    { id:"provinces", name:"The Provinces",
-      blurb:"The governed world — familiar ground and the settled frontier.",
-      tiers:["familiar","known"] },
-    { id:"frontier", name:"The Frontier",
-      blurb:"Past the provinces, to lands Rome knew but barely held.",
-      tiers:["familiar","known","obscure"] },
-    { id:"world", name:"The Whole Known World",
-      blurb:"Every name, out to the legendary edge — Thule, Bactria, the rim of the map.",
-      tiers:["familiar","known","obscure","edge"] },
-  ];
-  const TIER_POINTS = { familiar:1, known:2, obscure:3, edge:4 };
-
-  const reachOf = () => REACHES.find(r=>r.id===activeReach) || REACHES[0];
-  const placesFor = reach => PLACES.filter(p=>reach.tiers.includes(p.tier));
-
-  // ---- The Trial: a fixed 10-question test, mixed tier and kind ----------
-  // Guarantees a familiar and an edge-tier place (so the range runs easy to
-  // hard) and at least one city/province/region (so the mix is real), then
-  // fills the rest at random and shuffles — nothing about the order or the
-  // UI hints at which questions are the easy ones.
+  // A fixed 10-question test, mixed tier and kind. Guarantees a familiar
+  // and an edge-tier place (so the range runs easy to hard) and at least
+  // one city/province/region (so the mix is real), then fills the rest at
+  // random and shuffles — nothing about the order or the UI hints at which
+  // questions are the easy ones.
   const SOBRIQUETS = [
     { min:9, name:"Caesar" },
     { min:7, name:"Consul" },
@@ -230,7 +181,7 @@
   ];
   const sobriquetFor = score => (SOBRIQUETS.find(s=>score>=s.min) || SOBRIQUETS.at(-1)).name;
 
-  function buildTrialDeck(){
+  function buildDeck(){
     const picked = [];
     const pick = filterFn => {
       const candidates = shuffle(PLACES.filter(p=>!picked.includes(p) && filterFn(p)));
@@ -254,34 +205,6 @@
     if(km < 550*slack) return {label:"In the region",cls:"fair", pts:0.3};
     return {label:"Lost to Rome", cls:"miss", pts:0};
   }
-
-  function reachButtons(){
-    const box=el("reaches");
-    box.replaceChildren();
-    REACHES.forEach(r=>{
-      const b=document.createElement("button");
-      b.className="reach"+(r.id===activeReach && mode==="practice"?" active":"");
-      b.dataset.reach=r.id;
-      b.innerHTML =
-        `<span class="r-name">${r.name}</span>` +
-        `<span class="r-count">${placesFor(r).length} places</span>` +
-        `<span class="r-blurb">${r.blurb}</span>`;
-      b.onclick=()=>{
-        mode="practice"; activeReach=r.id;
-        [...box.children].forEach(c=>c.classList.toggle("active",c.dataset.reach===r.id));
-        el("trialcard").classList.remove("active");
-        el("begin").textContent="Begin";
-      };
-      box.appendChild(b);
-    });
-  }
-
-  el("trialcard").onclick=()=>{
-    mode="trial";
-    el("trialcard").classList.add("active");
-    [...el("reaches").children].forEach(c=>c.classList.remove("active"));
-    el("begin").textContent="Begin the Trial";
-  };
 
   function shuffle(a){ for(let k=a.length-1;k>0;k--){const j=(Math.random()*(k+1))|0;[a[k],a[j]]=[a[j],a[k]];} return a; }
 
@@ -359,7 +282,7 @@
   }
 
   function startRound(){
-    deck = mode==="trial" ? buildTrialDeck() : shuffle(placesFor(reachOf()).slice());
+    deck = buildDeck();
     i=0; score=0; awaiting=false;
     gPlay.replaceChildren();
     removeCard();
@@ -374,7 +297,7 @@
   }
 
   function renderScore(){
-    el("score").textContent = mode==="trial" ? `${Math.round(score*10)/10}/10` : Math.round(score);
+    el("score").textContent = `${Math.round(score*10)/10}/10`;
   }
 
   function next(){
@@ -382,8 +305,6 @@
     if(i>=deck.length){ finish(); return; }
     const p=deck[i];
     el("prompt").textContent=p.name;
-    el("tiertag").hidden = mode==="trial";
-    if(mode!=="trial") el("tiertag").textContent=p.tier;
     el("idx").textContent=i+1;
     renderScore();
     el("reveal").disabled=false;
@@ -417,7 +338,7 @@
     const [tx,ty]=toXY(p.lon,p.lat);
     const km = guessLon===null ? Infinity : haversineKm(guessLon,guessLat,p.lon,p.lat);
     const v = km===Infinity ? {label:"Skipped",cls:"miss",pts:0} : judge(km,p.tier);
-    score += mode==="trial" ? v.pts : v.pts * (TIER_POINTS[p.tier]||1);
+    score += v.pts;
 
     if(guessLon!==null){
       const [gx,gy]=toXY(guessLon,guessLat);
@@ -441,7 +362,6 @@
   }
 
   function finish(){
-    const done = i;                       // how many were actually played
     el("hud").hidden=true;
     el("gamebar").hidden=true;
     el("stage").hidden=true;
@@ -449,19 +369,11 @@
     el("prompt").textContent="—";
     el("verdict").innerHTML="";
     removeCard();
-    if(mode==="trial"){
-      const s = Math.round(score*10)/10;
-      el("summary").innerHTML =
-        `<strong>The Trial is complete.</strong> You scored <strong>${s}</strong> out of 10.<br>` +
-        `<span class="sobriquet">${sobriquetFor(score)}</span>`;
-      el("begin").textContent="Take the Trial again";
-    } else {
-      const reach = reachOf();
-      el("summary").innerHTML =
-        `<strong>Round complete.</strong> Final score <strong>${Math.round(score)}</strong> ` +
-        `across ${done} ${done===1?"place":"places"} of <em>${reach.name}</em>.`;
-      el("begin").textContent="March again";
-    }
+    const s = Math.round(score*10)/10;
+    el("summary").innerHTML =
+      `You scored <strong>${s}</strong> out of 10.<br>` +
+      `<span class="sobriquet">${sobriquetFor(score)}</span>`;
+    el("begin").textContent="Play again";
     el("startscreen").hidden=false;
   }
 
@@ -469,7 +381,6 @@
   el("quit").onclick=()=>{ awaiting=false; finish(); };
   el("begin").onclick=startRound;
 
-  reachButtons();
   el("loadnote").textContent = `${PLACES.length} places · map ${W}×${H}`;
 })();
 </script>
