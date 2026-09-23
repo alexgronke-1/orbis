@@ -4,17 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Orbis Romanus — place the province</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
   /* Mosaic tesserae: the palette of a Roman floor — black and limestone
      tesserae, cinnabar red and ochre for the figural details. The
      checkerboard band under the masthead is the one signature flourish;
      everything else stays flat, crisp color — like tile, not paint. */
   :root{
-    --ink:#18130d; --paper:#ece5d3; --land:#dfd6bd; --land-line:#8f8468;
+    --ink:#18130d; --paper:#d9d3c2; --land:#dfd6bd; --land-line:#8f8468;
     --sea:#0e0b08; --river:#3d6b78;
     --accent:#b3341f; --accent2:#c98a2c;
     --good:#5c7a4e; --ok:#c98a2c; --fair:#b3671f; --miss:#8c2418;
     --line:rgba(24,19,13,.35);
+    --display:'Unbounded',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
@@ -24,7 +28,7 @@
               background:url("assets/tesserae-bg.webp") repeat;background-size:340px 340px;
               opacity:.06;filter:saturate(.4) brightness(.7)}
   .wrap{max-width:1100px;margin:0 auto;padding:16px}
-  h1{font-size:24px;font-weight:800;letter-spacing:.03em;margin:.2em 0}
+  h1{font:800 22px/1.2 var(--display);letter-spacing:0;margin:.3em 0}
   .muted{color:rgba(236,229,211,.62);font-size:14px}
 
   /* the signature element: a mosaic border band, red-and-black tesserae */
@@ -48,8 +52,8 @@
   #begin{font-size:16px;padding:10px 20px;margin-top:16px;
          background:var(--ink);color:var(--paper);border-color:var(--ink)}
   #begin:hover{background:var(--accent);border-color:var(--accent);color:#fff}
-  .sobriquet{display:inline-block;margin-top:6px;font-size:26px;font-weight:800;
-             text-transform:uppercase;letter-spacing:.06em;color:var(--accent)}
+  .sobriquet{display:inline-block;margin-top:6px;font:800 24px var(--display);
+             text-transform:uppercase;letter-spacing:0;color:var(--accent)}
 
   #stage{position:relative}
   #mapclip{border-radius:8px;overflow:hidden;border:1px solid rgba(236,229,211,.12);
@@ -59,7 +63,7 @@
   /* ---- draggable name placard ---- */
   .placard{position:absolute;left:50%;top:14px;transform:translate(-50%,0);z-index:6;
            background:var(--paper);border:1.5px solid var(--ink);border-radius:6px;
-           padding:7px 15px;font-size:19px;font-weight:700;letter-spacing:.05em;
+           padding:8px 16px;font:700 17px var(--display);letter-spacing:0;
            color:var(--ink);box-shadow:0 7px 18px rgba(0,0,0,.4);
            cursor:grab;user-select:none;touch-action:none;white-space:nowrap;
            animation:cardDrop .5s cubic-bezier(.2,.85,.25,1.1) both}
@@ -80,7 +84,7 @@
   }
   .hud{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
        flex-wrap:wrap;margin:12px 0 6px}
-  .prompt{font-size:28px;font-weight:800;letter-spacing:.03em;color:var(--paper)}
+  .prompt{font:800 26px var(--display);letter-spacing:0;color:var(--paper)}
   .score{font-variant-numeric:tabular-nums;color:rgba(236,229,211,.75)}
   .verdict{min-height:1.6em;font-size:15px}
   .swatch{display:inline-block;width:.8em;height:.8em;border-radius:2px;vertical-align:-1px}
@@ -89,7 +93,7 @@
 <body>
 <div class="wrap">
   <h1>Orbis Romanus</h1>
-  <p class="muted">A Latin name drops onto the map — drag the placard so its pointer rests where the place belonged in the Roman world. Your error is measured in Roman miles.</p>
+  <p class="muted">How well can you navigate the world of Ancient Rome? Drag each Latin name onto the map where you think it belongs — are you Caesar of the map, a mere Plebs, or somewhere in between?</p>
   <div class="tess"></div>
 
   <div class="startscreen" id="startscreen">

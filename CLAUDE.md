@@ -104,6 +104,16 @@ not a second pattern competing with `.tess`. If it ever needs to be more
 visible, raise opacity in small steps and recheck against the `.tess` band
 and text contrast rather than assuming more is better.
 
+Display type is **Unbounded** (Google Fonts, loaded via `<link>` — the one
+network dependency the game has; everything falls back to `system-ui` if it
+can't load) on `h1`, `.prompt`, `.sobriquet`, and `.placard`. It replaced
+plain bold `system-ui` because that, paired with the original cream
+`--paper` (`#ece5d3`), read as generic AI-generated-page default rather than
+a considered choice. `--paper` is now a cooler, greyer stone tone
+(`#d9d3c2`) for the same reason — less "warm cream card," more worn
+limestone. Body copy and buttons stay on `system-ui`; the display face is
+spent only on the hero text, in keeping with "boldness in one place."
+
 ## Running
 
 No build step, no dependencies for the game itself. Open `index.html` directly,
